@@ -1,0 +1,29 @@
+% Read the image
+image = imread('C:\Program Files\MATLAB\R2024a\toolbox\images\imdata\daisy.jpg');
+
+% Convert the image to grayscale
+gray_image = rgb2gray(image);
+
+% Get the size of the grayscale image
+[rows, cols] = size(gray_image);
+
+% Open the text file to write the intensity values in decimal format
+fileID = fopen(['intensity_values_daisy.txt'], 'w');
+
+% Write the intensity values to the text file in decimal format
+for i = 1:rows
+    for j = 1:cols
+        decimal_value = gray_image(i, j); % Get the decimal intensity value
+        fprintf(fileID, 'pixel_in = %d; #10;\n', decimal_value);
+    end
+end
+
+% Close the text file
+fclose(fileID);
+
+% Display the size of the image
+fprintf('Image size: %d x %d\n', rows, cols);
+
+% Optional: Display the grayscale image
+imshow(gray_image);
+title('Grayscale Image');

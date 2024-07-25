@@ -1,0 +1,99 @@
+`timescale 1ns / 1ps
+
+module laplacian_edge_detection (
+    input clk,
+    input rst,
+    input [7:0] pixel_in,
+    output reg [7:0] pixel_out,
+    output reg done
+);
+
+    parameter WIDTH = 640;  // width of the image
+    parameter HEIGHT = 417; // height of the image
+    parameter SIZE = WIDTH * HEIGHT;
+    parameter THRESHOLD = 128; // Threshold value for binary output
+
+    reg [7:0] image [0:SIZE-1];
+    reg [7:0] result [0:SIZE-1];
+    integer i, j, idx;
+    integer count;  // Counter for clock cycles
+    integer fd;  // File descriptor for writing output
+    integer jfile;  // Index for writing output file
+    time sim_time;  // Variable to store simulation time
+
+    initial begin
+        // Open file at the beginning
+        fd = $fopen("C:/Xilinx/.xinstall/Vivado_Lab_2024.1/bin/fhau/fhau.sim/sim_1/behav/xsim/laplacianvalues6.txt", "w");
+        if (fd == 0) begin
+            $display("Error opening file for writing");
+            $finish;
+        end
+    end
+
+    // Close file at the end of simulation
+    initial begin
+        #150000000;  // Adjusted simulation time to ensure it covers the required time window
+        $fclose(fd);  // Close the file
+        $display("File closed after simulation");
+        $finish;  // End simulation
+    end
+
+    always @(posedge clk or posedge rst) begin
+        sim_time = $time;  // Get the current simulation time
+        if (rst) begin
+            // Reset all the registers
+            for (i = 0; i < SIZE; i = i + 1) begin
+                image[i] <= 0;
+                result[i] <= 0;
+            end
+            done <= 0;
+            idx <= 0;
+            count <= 0;
+            pixel_out <= 0;  // Initialize pixel_out
+        end else begin
+            if (count < SIZE) begin
+                // Store pixel_in values into the image array
+                image[count] <= pixel_in;
+                count <= count + 1;
+                $display("Storing pixel %d: %d", count, pixel_in);  // Debugging
+            end else if (count == SIZE) begin
+                // Apply Laplacian filter
+                for (i = 1; i < HEIGHT-1; i = i + 1) begin
+                    for (j = 1; j < WIDTH-1; j = j + 1) begin
+                        result[i*WIDTH + j] <= (
+                            - image[(i-1)*WIDTH + j] + 
+                            - image[i*WIDTH + (j-1)] + 
+                            4 * image[i*WIDTH + j] + 
+                            - image[i*WIDTH + (j+1)] + 
+                            - image[(i+1)*WIDTH + j]
+                        );
+                        $display("Laplacian filter at (%d, %d): %d", i, j, result[i*WIDTH + j]);  // Debugging
+                    end
+                end
+                done <= 1;
+                count <= count + 1;  // Move to the next state
+                idx <= 0;  // Reset index for output
+                $display("Processing complete, moving to output phase.");
+            end else if (done) begin
+                // Output pixel values one by one
+                if (idx < SIZE) begin
+                    // Apply thresholding
+                    if (result[idx] >= THRESHOLD) begin
+                        pixel_out <= 8'hFF;  // Set to white (255)
+                    end else begin
+                        pixel_out <= 8'h00;  // Set to black (0)
+                    end
+
+                    if (sim_time >= 2668825 && sim_time <= 5337625) begin
+                        $fwrite(fd, "%d\n", pixel_out);  // Write result to file
+                        $display("Outputting pixel %d: %d", idx, pixel_out);  // Debugging
+                    end
+                    idx <= idx + 1;
+                end else begin
+                    done <= 0;  // Reset done signal after all pixels are processed
+                    $display("All pixels processed. Done signal deasserted.");
+                end
+            end
+        end
+    end
+endmodule

@@ -1,0 +1,34 @@
+% Define the path to the pixel values file
+filePath = 'C:\Xilinx\.xinstall\Vivado_Lab_2024.1\bin\fhau\fhau.sim\sim_1\behav\xsim\laplacianvalues5.txt';
+
+% Define image dimensions
+width = 640;  % Replace with actual width
+height = 417; % Replace with actual height
+
+% Read the pixel values from the file
+fileID = fopen(filePath, 'r');
+if fileID == -1
+    error('Failed to open the file.');
+end
+
+% Read the content of the file into a matrix
+pixelValues = fscanf(fileID, '%f');
+fclose(fileID);
+
+% Check the number of pixel values read
+numPixels = numel(pixelValues);
+expectedNumPixels = width * height;
+
+if numPixels ~= expectedNumPixels
+    error('The number of pixel values read does not match the expected size of the image matrix. Expected %d, but got %d.', expectedNumPixels, numPixels);
+end
+
+% Reshape the pixel values into an image matrix
+imageMatrix = reshape(pixelValues, [width, height]);
+
+% Display the image
+imshow(imageMatrix, []);
+title('Generated Image from Pixel Values');
+
+% Optionally, save the image to a file
+imwrite(imageMatrix, 'generated_image.png');
